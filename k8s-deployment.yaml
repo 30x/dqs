@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: dqs
+  labels:
+    name: dqs
+  namespace: apigee
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: dqs
+  template:
+    metadata:
+      labels:
+        component: dqs
+        routable: "true"
+      annotations:
+        privateHosts: sso.k8s.local
+        privatePaths: 3000:/dqs
+    spec:
+      containers:
+      - name: dqs
+        image: dqs
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: PORT
+            value: "3000"
+          - name: PG_HOST
+            valueFrom:
+              secretKeyRef:
+                name: kvm
+                key: pghost
+          - name: PG_USER
+            valueFrom:
+              secretKeyRef:
+                name: kvm
+                key: pguser
+          - name: PG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kvm
+                key: pgpassword
+          - name: PG_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: kvm
+                key: pgdatabase
+          - name: SHIPYARD_PRIVATE_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: routing
+                key: private-api-key
+          - name: SPEEDUP
+            value: "10" 
+          - name: INTERNAL_ROUTER
+            value: "internal-router" 
+          - name: IPADDRESS
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP          
+        ports:
+          - containerPort: 3000

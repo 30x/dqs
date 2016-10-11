@@ -1,0 +1,1 @@
+docker push thirtyx/dqs:0.0.1
