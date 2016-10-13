@@ -1,7 +1,7 @@
 'use strict'
 var Pool = require('pg').Pool
 var lib = require('http-helper-functions')
-const db = require('./teams-pg.js')
+const db = require('./dqss-pg.js')
 
 function withErrorHandling(req, res, callback) {
   return function (err) {
@@ -14,33 +14,29 @@ function withErrorHandling(req, res, callback) {
   }
 }
 
-function createTeamThen(req, res, id, selfURL, team, callback) {
-  db.createTeamThen(req, id, selfURL, team, withErrorHandling(req, res, callback))
+function createDQSThen(req, res, id, selfURL, dqs, callback) {
+  db.createDQSThen(req, id, selfURL, dqs, withErrorHandling(req, res, callback))
 }
 
-function withTeamDo(req, res, id, callback) {
-  db.withTeamDo(req, id, withErrorHandling(req, res, callback))
+function withDQSDo(req, res, id, callback) {
+  db.withDQSDo(req, id, withErrorHandling(req, res, callback))
 }
 
-function withTeamsForUserDo(req, res, user, callback) {
-  db.withTeamsForUserDo(req, user, withErrorHandling(req, res, callback))
-}
-    
-function deleteTeamThen(req, res, id, callback) {
-  db.deleteTeamThen(req, id, withErrorHandling(req, res, callback))
+function deleteDQSThen(req, res, id, callback) {
+  db.deleteDQSThen(req, id, withErrorHandling(req, res, callback))
 }
 
-function updateTeamThen(req, res, id, team, patchedTeam, etag, callback) {
-  db.updateTeamThen(req, id, team, patchedTeam, etag, withErrorHandling(req, res, callback))
+function updateDQSThen(req, res, id, dqs, patchedDQS, etag, callback) {
+  db.updateDQSThen(req, id, dqs, patchedDQS, etag, withErrorHandling(req, res, callback))
 }
 
 function init(callback) {
   db.init(callback)
 }
 
-exports.createTeamThen = createTeamThen
-exports.updateTeamThen = updateTeamThen
-exports.deleteTeamThen = deleteTeamThen
-exports.withTeamDo = withTeamDo
-exports.withTeamsForUserDo = withTeamsForUserDo
+exports.createDQSThen = createDQSThen
+exports.updateDQSThen = updateDQSThen
+exports.deleteDQSThen = deleteDQSThen
+exports.withDQSDo = withDQSDo
+exports.withDQSsForUserDo = withDQSsForUserDo
 exports.init = init

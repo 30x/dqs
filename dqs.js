@@ -1,46 +1,52 @@
 'use strict'
-var http = require('http')
-var url = require('url')
-var lib = require('http-helper-functions')
-var db = require('./dqs-db.js')
+const http = require('http')
+const url = require('url')
+const lib = require('http-helper-functions')
+const pLib = require('permissions-helper-functions')
+const db = require('./dqs-db.js')
 
-var DQSS = '/dqss/'
+const DQSS = '/dqss/'
 
 function verifyDQS(req, dqs, user) {
   var rslt = lib.setStandardCreationProperties(req, dqs, user)
   if (dqs.isA == 'DQS')
-    if (Array.isArray(dqs.members))
-      return null
+    if (dqs.customer == null)
+      return 'DQS must reference the customer for which it is being created'
     else
-      return 'dqs must have an array of members'
+      return null
   else
     return 'invalid JSON: "isA" property not set to "DQS" ' + JSON.stringify(dqs)
 }
 
 function createDQS(req, res, dqs) {
-  var user = lib.getUser(req)
+  var user = lib.getUser(req.headers.authorization)
   if (user == null)
     lib.unauthorized(req, res)
   else { 
     var err = verifyDQS(req, dqs, user)
     if (err !== null) 
       lib.badRequest(res, err)
-    else {
-      var permissions = dqs.permissions
-      if (permissions !== undefined)
-        delete dqs.permissions
-      var id = lib.uuid4()
-      var selfURL = makeSelfURL(req, id)
-      lib.createPermissonsFor(req, res, selfURL, permissions, function(permissionsURL, permissions, responseHeaders){
-        // Create permissions first. If we fail after creating the permissions resource but before creating the main resource, 
-        // there will be a useless but harmless permissions document.
-        // If we do things the other way around, a dqs without matching permissions could cause problems.
-        db.createDQSThen(req, res, id, selfURL, dqs, function(etag) {
-          dqs.self = selfURL 
-          lib.created(req, res, dqs, dqs.self, etag)
-        })
+    else
+      pLib.ifAllowedThen(req.headers, dqs.customer, 'dqss', 'create', function(err, reason) {
+        if (err)
+          lib.internalError(res, reason)
+        else {
+          var permissions = dqs.permissions
+          if (permissions !== undefined)
+            delete dqs.permissions
+          var id = lib.uuid4()
+          var selfURL = makeSelfURL(req, id)
+          lib.createPermissonsFor(req, res, selfURL, permissions, function(permissionsURL, permissions, responseHeaders){
+            // Create permissions first. If we fail after creating the permissions resource but before creating the main resource, 
+            // there will be a useless but harmless permissions document.
+            // If we do things the other way around, a dqs without matching permissions could cause problems.
+            db.createDQSThen(req, res, id, selfURL, dqs, function(etag) {
+              dqs.self = selfURL 
+              lib.created(req, res, dqs, dqs.self, etag)
+            })
+          })
+        }
       })
-    }
   }
 }
 
@@ -49,50 +55,43 @@ function makeSelfURL(req, key) {
 }
 
 function getDQS(req, res, id) {
-  lib.ifAllowedThen(req, res, null, '_self', 'read', function() {
-    db.withDQSDo(req, res, id, function(dqs , etag) {
-      dqs.self = makeSelfURL(req, id)
-      dqs._permissions = `protocol://authority/permissions?${dqs.self}`
-      dqs._permissionsHeirs = `protocol://authority/permissions-heirs?${dqs.self}`
-      lib.externalizeURLs(dqs, req.headers.host)
-      lib.found(req, res, dqs, etag)
-    })
+  pLib.ifAllowedThen(req.headers, null, '_self', 'read', function(err, reason) {
+    if (err)
+      lib.internalError(res, reason)
+    else
+      db.withDQSDo(req, res, id, function(dqs , etag) {
+        dqs.self = makeSelfURL(req, id)
+        dqs._permissions = `protocol://authority/permissions?${dqs.self}`
+        dqs._permissionsHeirs = `protocol://authority/permissions-heirs?${dqs.self}`
+        lib.externalizeURLs(dqs, req.headers.host)
+        lib.found(req, res, dqs, etag)
+      })
   })
 }
 
 function deleteDQS(req, res, id) {
-  lib.ifAllowedThen(req, res, null, '_self', 'delete', function() {
-    db.deleteDQSThen(req, res, id, function (dqs, etag) {
-      lib.found(req, res, dqs, dqs.etag)
-    })
+  pLib.ifAllowedThen(req.headers, null, '_self', 'delete', function(err, reason) {
+    if (err)
+      lib.internalError(res, reason)
+    else
+      db.deleteDQSThen(req, res, id, function (dqs, etag) {
+        lib.found(req, res, dqs, dqs.etag)
+      })
   })
 }
 
 function updateDQS(req, res, id, patch) {
-  lib.ifAllowedThen(req, res, null, '_self', 'update', function(dqs, etag) {
-    lib.applyPatch(req, res, dqs, patch, function(patchedDQS) {
-      db.updateDQSThen(req, res, id, dqs, patchedDQS, etag, function (etag) {
-        patchedPermissions.self = selfURL(id, req) 
-        lib.found(req, res, dqs, etag)
+  pLib.ifAllowedThen(req.headers, null, '_self', 'update', function(err, reason) {
+    if (err)
+      lib.internalError(res, reason)
+    else
+      lib.applyPatch(req, res, dqs, patch, function(patchedDQS) {
+        db.updateDQSThen(req, res, id, dqs, patchedDQS, etag, function (etag) {
+          patchedPermissions.self = selfURL(id, req) 
+          lib.found(req, res, dqs, etag)
+        })
       })
-    })
   })
-}
-
-function getDQSsForUser(req, res, user) {
-  var requestingUser = lib.getUser(req)
-  user = lib.internalizeURL(user, req.headers.host)
-  if (user == requestingUser) {
-    db.withDQSsForUserDo(req, res, user, function (dqsIDs) {
-      var rslt = {
-        self: `protocol://authority${req.url}`,
-        contents: dqsIDs.map(id => `//${req.headers.host}${DQSS}${id}`)
-      }
-      lib.externalizeURLs(rslt)
-      lib.found(req, res, rslt)
-    })
-  } else
-    lib.forbidden(req, res)
 }
 
 function requestHandler(req, res) {
@@ -115,9 +114,7 @@ function requestHandler(req, res) {
         })
       else
         lib.methodNotAllowed(req, res, ['GET', 'DELETE', 'PATCH'])
-    } else if (req_url.pathname == '/dqss' && req_url.search !== null)
-      getDQSsForUser(req, res, req_url.search.substring(1))
-    else
+    } else
       lib.notFound(req, res)
   }
 }

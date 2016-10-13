@@ -13,18 +13,18 @@ var config = {
 var pool = new Pool(config)
 var eventProducer = new pge.eventProducer(pool)
 
-function createTeamThen(req, id, selfURL, team, callback) {
-  var query = `INSERT INTO teams (id, etag, data) values('${id}', 1, '${JSON.stringify(team)}') RETURNING etag`
+function createDQSThen(req, id, selfURL, dqs, callback) {
+  var query = `INSERT INTO dqss (id, etag, data) values('${id}', 1, '${JSON.stringify(dqs)}') RETURNING etag`
   function eventData(pgResult) {
-    return {id: selfURL, action: 'create', etag: pgResult.rows[0].etag, team: team}
+    return {id: selfURL, action: 'create', etag: pgResult.rows[0].etag, dqs: dqs}
   }
-  pge.queryAndStoreEvent(req, pool, query, 'teams', eventData, eventProducer, function(err, pgResult, pgEventResult) {
+  pge.queryAndStoreEvent(req, pool, query, 'dqss', eventData, eventProducer, function(err, pgResult, pgEventResult) {
     callback(err, pgResult.rows[0].etag)
   })
 }
 
-function withTeamDo(req, id, callback) {
-  pool.query('SELECT etag, data FROM teams WHERE id = $1', [id], function (err, pg_res) {
+function withDQSDo(req, id, callback) {
+  pool.query('SELECT etag, data FROM dqss WHERE id = $1', [id], function (err, pg_res) {
     if (err) {
       callback(500)
     }
@@ -40,41 +40,29 @@ function withTeamDo(req, id, callback) {
   })
 }
 
-function withTeamsForUserDo(req, user, callback) {
-  var query = "SELECT id FROM teams, jsonb_array_elements(teams.data->'members') AS member WHERE member = $1"
-  pool.query(query, [JSON.stringify(user)], function (err, pg_res) {
-    if (err) {
-      callback(err)
-    }
-    else {
-      callback(null, pg_res.rows.map(row => row.id))
-    }
-  })
-}
-    
-function deleteTeamThen(req, id, callback) {
-  var query = `DELETE FROM teams WHERE id = '${id}' RETURNING *`
+function deleteDQSThen(req, id, callback) {
+  var query = `DELETE FROM dqss WHERE id = '${id}' RETURNING *`
   function eventData(pgResult) {
-    return {id: id, action: 'delete', etag: pgResult.rows[0].etag, team: pgResult.rows[0].data}
+    return {id: id, action: 'delete', etag: pgResult.rows[0].etag, dqs: pgResult.rows[0].data}
   }
-  pge.queryAndStoreEvent(req, pool, query, 'teams', eventData, eventProducer, function(err, pgResult, pgEventResult) {
+  pge.queryAndStoreEvent(req, pool, query, 'dqss', eventData, eventProducer, function(err, pgResult, pgEventResult) {
     callback(err, pgResult.rows[0].data, pgResult.rows[0].etag)
   })
 }
 
-function updateTeamThen(req, id, team, patchedTeam, etag, callback) {
+function updateDQSThen(req, id, dqs, patchedDQS, etag, callback) {
   var key = lib.internalizeURL(id, req.headers.host)
-  var query = `UPDATE teams SET (etag, data) = (${(etag+1) % 2147483647}, '${JSON.stringify(patchedTeam)}') WHERE subject = '${key}' AND etag = ${etag} RETURNING etag`
+  var query = `UPDATE dqss SET (etag, data) = (${(etag+1) % 2147483647}, '${JSON.stringify(patchedDQS)}') WHERE subject = '${key}' AND etag = ${etag} RETURNING etag`
   function eventData(pgResult) {
-    return {id: id, action: 'update', etag: pgResult.rows[0].etag, before: team, after: patchedTeam}
+    return {id: id, action: 'update', etag: pgResult.rows[0].etag, before: dqs, after: patchedDQS}
   }
-  pge.queryAndStoreEvent(req, pool, query, 'teams', eventData, eventProducer, function(err, pgResult, pgEventResult) {
+  pge.queryAndStoreEvent(req, pool, query, 'dqss', eventData, eventProducer, function(err, pgResult, pgEventResult) {
     callback(err, pgResult.rows[0].etag)
   })
 }
 
 function init(callback) {
-  var query = 'CREATE TABLE IF NOT EXISTS teams (id text primary key, etag int, data jsonb)'
+  var query = 'CREATE TABLE IF NOT EXISTS dqss (id text primary key, etag int, data jsonb)'
   pool.query(query, function(err, pgResult) {
     if(err) {
       console.error('error creating permissions table', err)
@@ -89,9 +77,9 @@ process.on('unhandledRejection', function(e) {
   console.log(e.message, e.stack)
 })
 
-exports.createTeamThen = createTeamThen
-exports.updateTeamThen = updateTeamThen
-exports.deleteTeamThen = deleteTeamThen
-exports.withTeamDo = withTeamDo
-exports.withTeamsForUserDo = withTeamsForUserDo
+exports.createDQSThen = createDQSThen
+exports.updateDQSThen = updateDQSThen
+exports.deleteDQSThen = deleteDQSThen
+exports.withDQSDo = withDQSDo
+exports.withDQSsForUserDo = withDQSsForUserDo
 exports.init = init

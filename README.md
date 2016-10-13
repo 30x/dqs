@@ -1,3 +1,3 @@
 # Overview
 
-The dqs application allows dqs's to be created and maintained.
+The DQS application allows DQSs to be created and maintained.
