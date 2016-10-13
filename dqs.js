@@ -85,10 +85,12 @@ function updateDQS(req, res, id, patch) {
     if (err)
       lib.internalError(res, reason)
     else
-      lib.applyPatch(req, res, dqs, patch, function(patchedDQS) {
-        db.updateDQSThen(req, res, id, dqs, patchedDQS, etag, function (etag) {
-          patchedPermissions.self = selfURL(id, req) 
-          lib.found(req, res, dqs, etag)
+      db.withDQSDo(req, res, id, function(team , etag) {
+        lib.applyPatch(req, res, dqs, patch, function(patchedDQS) {
+          db.updateDQSThen(req, res, id, dqs, patchedDQS, etag, function (etag) {
+            patchedPermissions.self = selfURL(id, req) 
+            lib.found(req, res, dqs, etag)
+          })
         })
       })
   })
