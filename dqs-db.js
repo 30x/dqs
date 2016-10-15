@@ -22,6 +22,10 @@ function withDQSDo(req, res, id, callback) {
   db.withDQSDo(req, id, withErrorHandling(req, res, callback))
 }
 
+function withDQSFromNameDo(req, res, name, callback) {
+  db.withDQSDo(req, id, withErrorHandling(req, res, callback))
+}
+
 function deleteDQSThen(req, res, id, callback) {
   db.deleteDQSThen(req, id, withErrorHandling(req, res, callback))
 }
@@ -38,5 +42,5 @@ exports.createDQSThen = createDQSThen
 exports.updateDQSThen = updateDQSThen
 exports.deleteDQSThen = deleteDQSThen
 exports.withDQSDo = withDQSDo
-exports.withDQSsForUserDo = withDQSsForUserDo
+exports.withDQSFromNameDo = withDQSFromNameDo
 exports.init = init
