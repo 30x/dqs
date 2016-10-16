@@ -1,7 +1,7 @@
 'use strict'
 var Pool = require('pg').Pool
 var lib = require('http-helper-functions')
-const db = require('./dqss-pg.js')
+const db = require('./dqs-pg.js')
 
 function withErrorHandling(req, res, callback) {
   return function (err) {
@@ -15,23 +15,23 @@ function withErrorHandling(req, res, callback) {
 }
 
 function createDQSThen(req, res, id, selfURL, dqs, callback) {
-  db.createDQSThen(req, id, selfURL, dqs, withErrorHandling(req, res, callback))
+  db.createDQSThen(id, selfURL, dqs, withErrorHandling(req, res, callback))
 }
 
 function withDQSDo(req, res, id, callback) {
-  db.withDQSDo(req, id, withErrorHandling(req, res, callback))
+  db.withDQSDo(id, withErrorHandling(req, res, callback))
 }
 
 function withDQSFromNameDo(req, res, name, callback) {
-  db.withDQSDo(req, id, withErrorHandling(req, res, callback))
+  db.withDQSDo(id, withErrorHandling(req, res, callback))
 }
 
 function deleteDQSThen(req, res, id, callback) {
-  db.deleteDQSThen(req, id, withErrorHandling(req, res, callback))
+  db.deleteDQSThen(id, withErrorHandling(req, res, callback))
 }
 
 function updateDQSThen(req, res, id, dqs, patchedDQS, etag, callback) {
-  db.updateDQSThen(req, id, dqs, patchedDQS, etag, withErrorHandling(req, res, callback))
+  db.updateDQSThen(id, dqs, patchedDQS, etag, withErrorHandling(req, res, callback))
 }
 
 function init(callback) {

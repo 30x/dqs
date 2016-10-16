@@ -22,7 +22,7 @@ function createDQS(req, res, dqs) {
   var user = lib.getUser(req.headers.authorization)
   if (user == null)
     lib.unauthorized(req, res)
-  else { 
+  else {
     var err = verifyDQS(req, dqs, user)
     if (err !== null) 
       lib.badRequest(res, err)
@@ -33,7 +33,7 @@ function createDQS(req, res, dqs) {
           delete dqs.permissions
         var id = lib.uuid4()
         var selfURL = makeSelfURL(req, id)
-        lib.createPermissonsFor(req, res, selfURL, permissions, function(permissionsURL, permissions, responseHeaders){
+        pLib.createPermissionsThen(req, res, selfURL, permissions, function(permissionsURL, permissions, responseHeaders){
           // Create permissions first. If we fail after creating the permissions resource but before creating the main resource, 
           // there will be a useless but harmless permissions document.
           // If we do things the other way around, a dqs without matching permissions could cause problems.
@@ -57,7 +57,7 @@ function addCalculatedProperties(req, entity, selfURL) {
 }
 
 function getDQS(req, res, id) {
-  pLib.ifAllowedThen(req, res, null, '_self', 'read', function() {
+  pLib.ifAllowedThen(req, res, makeSelfURL(req, id), '_self', 'read', function() {
     db.withDQSDo(req, res, id, function(dqs , etag) {
       var selfURL = makeSelfURL(req, id)
       addCalculatedProperties(req, dqs, selfURL)
@@ -67,7 +67,7 @@ function getDQS(req, res, id) {
 }
 
 function deleteDQS(req, res, id) {
-  pLib.ifAllowedThen(req, res, null, '_self', 'delete', function() {
+  pLib.ifAllowedThen(req, res, makeSelfURL(req, id), '_self', 'delete', function() {
     lib.sendInternalRequest(req.headers, `/permissions?/customers;${id}`, 'DELETE', null, function (err, clientRes) {
       if (err)
         lib.internalError(res, err)
@@ -85,10 +85,11 @@ function deleteDQS(req, res, id) {
           internalError(serverRes, err)
         })
     })
+  })
 }
 
 function updateDQS(req, res, id, patch) {
-  pLib.ifAllowedThen(req, res, null, '_self', 'update', function(err, reason) {
+  pLib.ifAllowedThen(req, res, makeSelfURL(req, id), '_self', 'update', function(err, reason) {
     db.withDQSDo(req, res, id, function(team , etag) {
       lib.applyPatch(req, res, dqs, patch, function(patchedDQS) {
         db.updateDQSThen(req, res, id, dqs, patchedDQS, etag, function (etag) {

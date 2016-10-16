@@ -1,6 +1,5 @@
 'use strict'
-var Pool = require('pg').Pool
-var pge = require('pg-event-producer')
+const Pool = require('pg').Pool
 
 var config = {
   host: process.env.PG_HOST,
@@ -17,7 +16,7 @@ const randomBytes = require('crypto').randomBytes
 var toHex = Array(256)
 for (var val = 0; val < 256; val++) 
   toHex[val] = (val + 0x100).toString(16).substr(1)
-function uuid() {
+function uuid4() {
   var buf = randomBytes(16)
   buf[6] = (buf[6] & 0x0f) | 0x40
   buf[8] = (buf[8] & 0x3f) | 0x80
@@ -34,8 +33,8 @@ function uuid() {
 // End of section of code adapted from https://github.com/broofa/node-uuid4 under MIT License
 
 function createDQSThen(id, selfURL, dqs, callback) {
-  var query = `INSERT INTO dqss (id, etag, data) values('${id}', '${uuid()}', '${JSON.stringify(dqs)}') RETURNING etag`
-  poo.query(query, function(err, pg_res) {
+  var query = `INSERT INTO dqss (id, etag, data) values('${id}', '${uuid4()}', '${JSON.stringify(dqs)}') RETURNING etag`
+  pool.query(query, function(err, pg_res) {
     if (err) {
       callback(500)
     }
@@ -73,7 +72,7 @@ function withDQSFromNameDo(name, callback) {
     if (err)
       callback(500)
     else 
-      if (pg_res.rowCount === 0) { 
+      if (pg_res.rowCount === 0) 
         callback(404)
       else if (pg_res.rowCount > 1)
         callback(409)
@@ -102,7 +101,7 @@ function deleteDQSThen(id, callback) {
 }
 
 function updateDQSThen(id, dqs, patchedDQS, etag, callback) {
-  var query = `UPDATE dqss SET (etag, data) = (${uuid()}, '${JSON.stringify(patchedDQS)}') WHERE id = '${id}' AND etag = ${etag} RETURNING etag`
+  var query = `UPDATE dqss SET (etag, data) = (${uuid4()}, '${JSON.stringify(patchedDQS)}') WHERE id = '${id}' AND etag = ${etag} RETURNING etag`
   pool.query(query, function (err, pg_res) {
     if (err) {
       callback(500)
@@ -124,7 +123,7 @@ function init(callback) {
       console.error('error creating permissions table', err)
     } else {
       console.log(`connected to PG at ${config.host}`)
-      eventProducer.init(callback)
+      callback()
     }
   })    
 }
@@ -137,5 +136,5 @@ exports.createDQSThen = createDQSThen
 exports.updateDQSThen = updateDQSThen
 exports.deleteDQSThen = deleteDQSThen
 exports.withDQSDo = withDQSDo
-exports.withDQSsForUserDo = withDQSsForUserDo
+exports.withDQSFromNameDo = withDQSFromNameDo
 exports.init = init
