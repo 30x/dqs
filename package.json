@@ -18,5 +18,10 @@
   "bugs": {
     "url": "https://github.com/30x/dqs/issues"
   },
-  "homepage": "https://github.com/30x/dqs#readme"
+  "homepage": "https://github.com/30x/dqs#readme",
+  "dependencies": {
+    "http-helper-functions": "0.0.41",
+    "permissions-helper-functions": "0.0.6",
+    "pg": "^6.1.0"
+  }
 }
