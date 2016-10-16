@@ -18,6 +18,11 @@ function verifyDQS(req, dqs, user) {
     return 'invalid JSON: "isA" property not set to "DQS" ' + JSON.stringify(dqs)
 }
 
+function allocateSpace(req, res, id, selfURL, dqs, callback) {
+  // for Cassandra, this would mean picking a cluster and creating a keyspace
+  callback()
+}
+
 function createDQS(req, res, dqs) {
   var user = lib.getUser(req.headers.authorization)
   if (user == null)
@@ -37,9 +42,11 @@ function createDQS(req, res, dqs) {
           // Create permissions first. If we fail after creating the permissions resource but before creating the main resource, 
           // there will be a useless but harmless permissions document.
           // If we do things the other way around, a dqs without matching permissions could cause problems.
-          db.createDQSThen(req, res, id, selfURL, dqs, function(etag) {
-            dqs.self = selfURL 
-            lib.created(req, res, dqs, dqs.self, etag)
+          allocateSpace(req, res, id, selfURL, dqs, function() {
+            db.createDQSThen(req, res, id, selfURL, dqs, function(etag) {
+              dqs.self = selfURL 
+              lib.created(req, res, dqs, dqs.self, etag)
+            })
           })
         })
       })
