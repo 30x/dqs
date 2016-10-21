@@ -59,8 +59,8 @@ function makeSelfURL(req, key) {
 
 function addCalculatedProperties(req, entity, selfURL) {
   entity.self = selfURL
-  entity._permissions = `protocol://authority/permissions?${entity.self}`
-  entity._permissions = `protocol://authority/permissions-heirs?${entity.self}`
+  entity._permissions = `scheme://authority/permissions?${entity.self}`
+  entity._permissions = `scheme://authority/permissions-heirs?${entity.self}`
 }
 
 function getDQS(req, res, id) {
