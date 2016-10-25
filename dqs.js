@@ -75,22 +75,12 @@ function getDQS(req, res, id) {
 
 function deleteDQS(req, res, id) {
   pLib.ifAllowedThen(req, res, makeSelfURL(req, id), '_self', 'delete', function() {
-    lib.sendInternalRequest(req.headers, `/permissions?/customers;${id}`, 'DELETE', null, function (err, clientRes) {
-      if (err)
-        lib.internalError(res, err)
-      else if (clientRes.statusCode == 404)
-        lib.notFound(req, res)
-      else if (clientRes.statusCode == 200)
-        db.deleteDQSThen(req, res, id, function (dqs, etag) {
-          var selfURL = makeSelfURL(req, id)
-          addCalculatedProperties(req, dqs, selfURL)
-          lib.found(req, res, dqs, dqs.etag)
-        })
-      else
-        getClientResponseBody(clientRes, function(body) {
-          var err = {statusCode: clientRes.statusCode, msg: `failed to delete permissions for ${resourceURL} statusCode ${clientRes.statusCode} message ${body}`}
-          internalError(serverRes, err)
-        })
+    lib.sendInternalRequestThen(req, res, `/permissions?/customers;${id}`, 'DELETE', null, function (clientRes) {
+      db.deleteDQSThen(req, res, id, function (dqs, etag) {
+        var selfURL = makeSelfURL(req, id)
+        addCalculatedProperties(req, dqs, selfURL)
+        lib.found(req, res, dqs, dqs.etag)
+      })
     })
   })
 }
