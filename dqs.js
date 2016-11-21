@@ -113,7 +113,7 @@ function requestHandler(req, res) {
   }
   if (req.url == '/dqss') 
     if (req.method == 'POST') 
-      lib.getServerPostObject(req, res, createDQS)
+      lib.getServerPostObject(req, res, (dqs) => createDQS(req, res, dqs))
     else 
       lib.methodNotAllowed(req, res, ['POST'])
   else {
